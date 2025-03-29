@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import warnings
 import nltk
+import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
