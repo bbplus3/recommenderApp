@@ -8,9 +8,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
 import faiss
 import torch
-from transformers import AutoTokenizer, AutoModel
+#from transformers import AutoTokenizer, AutoModel
 import gdown
 import os
+import utils.py
 
 # Suppress warnings
 warnings.filterwarnings('ignore')
@@ -126,12 +127,12 @@ embeddings, index = load_embeddings_and_index()
 ##################################################################################################################
 # Load Sentence-BERT model
 @st.cache_resource
-def load_model():
-    """Load Sentence-BERT model."""
-    model_name = "sentence-transformers/all-MiniLM-L6-v2"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModel.from_pretrained(model_name)
-    return tokenizer, model
+#def load_model():
+#    """Load Sentence-BERT model."""
+#    model_name = "sentence-transformers/all-MiniLM-L6-v2"
+#    tokenizer = AutoTokenizer.from_pretrained(model_name)
+#    model = AutoModel.from_pretrained(model_name)
+#    return tokenizer, model
 
 tokenizer, model = load_model()
 
