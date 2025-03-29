@@ -8,7 +8,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from nltk.corpus import stopwords
 import faiss
 import torch
-#from transformers import AutoTokenizer, AutoModel
+import transformers
+from transformers import AutoTokenizer, AutoModel
 import gdown
 import os
 #import utils.py
