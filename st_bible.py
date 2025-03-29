@@ -209,7 +209,7 @@ with tab2:
     # Streamlit UI
     st.title("📖 Bible Verse Similarity Finder")
     query = st.text_input("Enter a phrase or verse:", "Love your neighbor as yourself")
-    top_n = st.slider("Number of similar verses:", min_value=1, max_value=10, value=5)
+    top_n = st.slider("Number of similar verses:", min_value=1, max_value=50, value=10, step=5)
 
     if st.button("Find Similar Verses"):
         results = find_similar_verses(query, top_n)
