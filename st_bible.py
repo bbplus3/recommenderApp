@@ -13,7 +13,9 @@ import transformers
 from transformers import AutoTokenizer, AutoModel
 import gdown
 import os
-#import utils.py
+
+# Force CPU for Streamlit.io (since no GPU support is available)
+device = torch.device("cpu")
 
 # Suppress warnings
 warnings.filterwarnings('ignore')
@@ -134,6 +136,7 @@ def load_model():
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
+    model = model.to(device)  # Move model to CPU
     return tokenizer, model
 
 tokenizer, model = load_model()
