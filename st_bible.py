@@ -13,7 +13,7 @@ import transformers
 from transformers import AutoTokenizer, AutoModel
 import gdown
 import os
-
+torch.classes.__path__ = []
 # Force CPU for Streamlit.io (since no GPU support is available)
 device = torch.device("cpu")
 
