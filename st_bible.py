@@ -2,14 +2,17 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import warnings
+import gensim
+from gensim.models import Word2Vec
 import nltk
+nltk.download('punkt')
+from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from nltk.corpus import stopwords
 import faiss
 import torch
 torch.classes.__path__ = []  # Neutralizes the path inspection
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, pipeline, set_seed
 import gdown
 import os
 os.environ["STREAMLIT_SERVER_ENABLE_FILE_WATCHER"] = "false"  # Disables problematic inspection
@@ -170,6 +173,42 @@ def find_similar_verses(query, top_n=5):
         results["Similarity"] = np.nan  # Fallback if distances are empty
     
     return results
+
+##################################################################################################################
+# Add word2vec model to suggest similar words after user input that user can select to add to search
+
+@st.cache_resource
+def load_word2vec(df):
+    # Tokenize all text for Word2Vec training
+    sentences = [nltk.word_tokenize(text.lower()) for text in df['t']]
+    model = Word2Vec(sentences, vector_size=100, window=5, min_count=1, workers=4)
+    return model
+
+w2v_model = load_word2vec(data)
+
+##################################################################################################################
+@st.cache_resource
+def load_generator():
+    generator = pipeline("text-generation", model="distilgpt2")
+    return generator
+
+generator = load_generator()
+
+def rag_generate(query, results_df):
+    verses = "\n".join(results_df['t'].tolist())
+    prompt = (
+        f"Based on the following Bible verses:\n\n{verses}\n\n"
+        f"Reflect on this theme: '{query}'"
+    )
+
+    result = generator(prompt, max_length=900, num_return_sequences=1, do_sample=True)
+    return result[0]['generated_text']
+    #result = generator(
+    #prompt,
+    #max_new_tokens=100,        # only generate 100 new tokens
+    #num_return_sequences=1,
+    #do_sample=True
+#)
 
 ##################################################################################################################
 
@@ -334,12 +373,39 @@ with tab3:
     query = st.text_input("Enter a phrase or verse:", "Love your neighbor as yourself")
     top_n = st.slider("Number of similar verses:", min_value=1, max_value=50, value=10, step=5)
 
+    # Word2Vec addition of similar words
+    query_tokens = nltk.word_tokenize(query.lower())
+    known_words = [word for word in query_tokens if word in w2v_model.wv.key_to_index]
+    similar_terms = []
+    for word in known_words:
+        similar_terms += [w for w, _ in w2v_model.wv.most_similar(word, topn=5)]
+    similar_terms = list(set(similar_terms))[:5]
+
+    #if query and query in w2v_model.wv.key_to_index:
+    #    similar_terms = [word for word, _ in w2v_model.wv.most_similar(query, topn=5)]
+
+    if similar_terms:
+        st.write("🔍 Similar terms to expand your search:")
+        selected_terms = st.multiselect("Add terms to search", options=similar_terms)
+        if selected_terms:
+            expanded_query = query + " " + " ".join(selected_terms)
+        else:
+            expanded_query = query
+    else:
+        expanded_query = query
+
     if st.button("Find Similar Verses"):
-        results = find_similar_verses(query, top_n)
+        results = find_similar_verses(expanded_query, top_n)
         st.write("### 🔍 Similar Verses:")
         for i, row in results.iterrows():
             st.write(f"**Book:** {row['Book Name']} | **Chapter:** {row['c']} | **Verse:** {row['v']}")
             st.write(f"**Text:** {row['t']} (Similarity: {row['Similarity']:.2f})")
+
+        if not results.empty:
+            with st.spinner("Generating summary with GPT..."):
+                summary = rag_generate(expanded_query, results)
+            st.markdown("### 🧠 RAG Summary")
+            st.write(summary)
 
 ##################################################################################################################    
 
@@ -383,6 +449,7 @@ with tab4:
             st.write(f"**Input Passage:** {passage}")
             st.write("### 🖼️ Generated Image:")
             image = pipe(prompt, height=height, width=width).images[0]
+            #st.image(image, use_container_width=True)
             st.image(image, width=600)
         else:
             st.write("Passage not found.")
